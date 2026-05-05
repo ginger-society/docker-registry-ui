@@ -30,12 +30,12 @@ module.exports = {
             inject: "body"
         }),
 
-        new CopyWebpackPlugin([
-            {
-                from: "src/frontend/app-images",
-                to: "images"
-            }
-        ])
+        // new CopyWebpackPlugin([
+        //     {
+        //         from: "src/frontend/app-images",
+        //         to: "images"
+        //     }
+        // ])
     ],
 
     devServer: {
