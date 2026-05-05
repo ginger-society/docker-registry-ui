@@ -19,16 +19,12 @@ router
     .options((req, res) => {
         res.sendStatus(204);
     })
-
-    /**
-     * GET /api/repos
-     *
-     * Retrieve all repos
-     */
     .get(pagination('name', 0, 50, 300), (req, res, next) => {
+        const authHeader = req.headers['authorization'] || '';
+
         validator({
             additionalProperties: false,
-            properties:           {
+            properties: {
                 tags: {
                     type: 'boolean'
                 }
@@ -37,36 +33,26 @@ router
             tags: (typeof req.query.tags !== 'undefined' ? !!req.query.tags : false)
         })
             .then(data => {
-                return internalRepo.getAll(data.tags);
+                return internalRepo.getAll(data.tags, authHeader);
             })
             .then(repos => {
-                res.status(200)
-                    .send(repos);
+                res.status(200).send(repos);
             })
             .catch(next);
     });
 
-/**
- * Specific repo
- *
- * /api/repos/abc123
- */
 router
     .route('/:name([-a-zA-Z0-9/.,_]+)')
     .options((req, res) => {
         res.sendStatus(204);
     })
-
-    /**
-     * GET /api/repos/abc123
-     *
-     * Retrieve a specific repo
-     */
     .get((req, res, next) => {
+        const authHeader = req.headers['authorization'] || '';
+
         validator({
             required:             ['name'],
             additionalProperties: false,
-            properties:           {
+            properties: {
                 name: {
                     type:      'string',
                     minLength: 1
@@ -80,26 +66,21 @@ router
             full: (typeof req.query.full !== 'undefined' ? !!req.query.full : false)
         })
             .then(data => {
-                return internalRepo.get(data.name, data.full);
+                return internalRepo.get(data.name, data.full, authHeader);
             })
             .then(repo => {
-                res.status(200)
-                    .send(repo);
+                res.status(200).send(repo);
             })
             .catch(next);
     })
-
-    /**
-     * DELETE /api/repos/abc123
-     *
-     * Delete a specific image/tag
-     */
     .delete((req, res, next) => {
+        const authHeader = req.headers['authorization'] || '';
+
         validator({
             required:             ['name', 'digest'],
             additionalProperties: false,
-            properties:           {
-                name:   {
+            properties: {
+                name: {
                     type:      'string',
                     minLength: 1
                 },
@@ -113,12 +94,12 @@ router
             digest: (typeof req.query.digest !== 'undefined' ? req.query.digest : '')
         })
             .then(data => {
-                return internalRepo.delete(data.name, data.digest);
+                return internalRepo.delete(data.name, data.digest, authHeader);
             })
             .then(result => {
-                res.status(200)
-                    .send(result);
+                res.status(200).send(result);
             })
             .catch(next);
     });
+
 module.exports = router;

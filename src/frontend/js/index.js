@@ -8,6 +8,11 @@ function formatSize(bytes) {
   return mb.toFixed(2) + " MB";
 }
 
+function getCookie(name) {
+  const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+  return match ? decodeURIComponent(match[2]) : null;
+}
+
 function createLayerHTML(layers) {
   return layers.map(l => `
     <div class="layer">
@@ -54,7 +59,11 @@ async function loadRepo() {
   repoEl.innerText = repo;
 
   try {
-    const res = await fetch(`/api/repos/${repo}?full=true`);
+    const token = getCookie("access_token");
+
+    const res = await fetch(`/api/repos/${repo}?full=true`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
 
     if (!res.ok) {
       throw new Error("API error");

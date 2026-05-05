@@ -29,3 +29,28 @@ jobs:
 
     - name: Push Docker image
       run: docker push ${{ secrets.DOCKER_HUB_USERNAME }}/docker-registry-ui:latest
+
+
+    - name: Set up Kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.STAGING_K8_CONFIG }}" > $HOME/.kube/config
+        continue-on-error: false
+
+    - name: Report failure if Kubeconfig setup fails
+      if: failure()
+      run: ginger-connector update-pipeline stage failed
+
+    - name: Install kubectl
+      run: |
+        curl -LO "https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
+        chmod +x ./kubectl
+        sudo mv ./kubectl /usr/local/bin/kubectl
+      continue-on-error: false
+    - name: Report failure if kubectl installation fails
+      if: failure()
+      run: ginger-connector update-pipeline stage failed
+
+    - name: Restart Kubernetes deployment
+      run: kubectl rollout restart deployment registry-ui
+      continue-on-error: false

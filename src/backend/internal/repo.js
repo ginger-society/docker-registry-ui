@@ -2,28 +2,44 @@
 
 const REGISTRY_HOST = process.env.REGISTRY_HOST;
 const REGISTRY_SSL  = process.env.REGISTRY_SSL && process.env.REGISTRY_SSL.toLowerCase() === 'true' || parseInt(process.env.REGISTRY_SSL, 10) === 1;
-const REGISTRY_USER = process.env.REGISTRY_USER;
-const REGISTRY_PASS = process.env.REGISTRY_PASS;
 
 const _         = require('lodash');
 const Docker    = require('../lib/docker-registry');
 const batchflow = require('batchflow');
-const registry  = new Docker(REGISTRY_HOST, REGISTRY_SSL, REGISTRY_USER, REGISTRY_PASS);
 const errors    = require('../lib/error');
 const logger    = require('../logger').registry;
 
+// Extract JWT from Authorization header — supports both Bearer and Basic __token__:<jwt>
+function extractToken(authHeader) {
+    if (!authHeader) return '';
+
+    if (authHeader.startsWith('Bearer ')) {
+        return authHeader.slice(7).trim();
+    }
+
+    if (authHeader.startsWith('Basic ')) {
+        const decoded = Buffer.from(authHeader.slice(6), 'base64').toString('utf8');
+        const colonIdx = decoded.indexOf(':');
+        if (colonIdx !== -1) {
+            return decoded.slice(colonIdx + 1).trim(); // everything after __token__:
+        }
+    }
+
+    return authHeader;
+}
+
+// Create a per-request registry client using the caller's token as REGISTRY_PASS
+function getRegistry(authHeader) {
+    const token = extractToken(authHeader);
+    return new Docker(REGISTRY_HOST, REGISTRY_SSL, '__token__', token);
+}
+
 const internalRepo = {
 
-    /**
-     * @param  {String}   name
-     * @param  {Boolean}  full
-     * @return {Promise}
-     */
-    get: (name, full) => {
+    get: (name, full, authHeader) => {
+        const registry = getRegistry(authHeader);
         return registry.getImageTags(name)
             .then(tags_data => {
-                // detect errors
-                console.log(tags_data)
                 if (typeof tags_data.errors !== 'undefined' && tags_data.errors.length) {
                     let top_err = tags_data.errors.shift();
                     if (top_err.code === 'NAME_UNKNOWN') {
@@ -34,13 +50,11 @@ const internalRepo = {
                 }
 
                 if (full && tags_data.tags !== null) {
-                    // Order the tags naturally, but put latest at the top if it exists
                     let latest_idx = tags_data.tags.indexOf('latest');
                     if (latest_idx !== -1) {
                         _.pullAt(tags_data.tags, [latest_idx]);
                     }
 
-                    // sort
                     tags_data.tags = tags_data.tags.sort((a, b) => a.localeCompare(b));
 
                     if (latest_idx !== -1) {
@@ -50,9 +64,6 @@ const internalRepo = {
                     return new Promise((resolve, reject) => {
                         batchflow(tags_data.tags).sequential()
                             .each((i, tag, next) => {
-                                // for each tag, we want to get 2 manifests.
-                                // Version 2 returns the layers and the correct image id
-                                // Version 1 returns the history we want to pluck from
                                 registry.getManifest(tags_data.name, tag, 2)
                                     .then(manifest2_result => {
                                         manifest2_result.name       = tag;
@@ -67,7 +78,6 @@ const internalRepo = {
                                                     if (typeof info.v1Compatibility !== undefined) {
                                                         info = JSON.parse(info.v1Compatibility);
 
-                                                        // Remove cruft
                                                         if (typeof info.config !== 'undefined') {
                                                             delete info.config;
                                                         }
@@ -102,13 +112,8 @@ const internalRepo = {
             });
     },
 
-    /**
-     * All repos
-     *
-     * @param   {Boolean}   [with_tags]
-     * @returns {Promise}
-     */
-    getAll: with_tags => {
+    getAll: (with_tags, authHeader) => {
+        const registry = getRegistry(authHeader);
         return registry.getImages()
             .then(result => {
                 if (typeof result.errors !== 'undefined' && result.errors.length) {
@@ -117,13 +122,10 @@ const internalRepo = {
                 } else if (typeof result.repositories !== 'undefined') {
                     let repositories = [];
 
-                    // sort images
                     result.repositories = result.repositories.sort((a, b) => a.localeCompare(b));
 
                     _.map(result.repositories, function (repo) {
-                        repositories.push({
-                            name: repo
-                        });
+                        repositories.push({ name: repo });
                     });
 
                     return repositories;
@@ -137,21 +139,17 @@ const internalRepo = {
                         batchflow(images).sequential()
                             .each((i, image, next) => {
                                 let image_result = image;
-                                // for each image
                                 registry.getImageTags(image.name)
                                     .then(tags_result => {
                                         if (typeof tags_result === 'string') {
-                                            // usually some sort of error
                                             logger.error('Tags result was: ', tags_result);
                                             image_result.tags = null;
                                         } else if (typeof tags_result.tags !== 'undefined' && tags_result.tags !== null) {
-                                            // Order the tags naturally, but put latest at the top if it exists
                                             let latest_idx = tags_result.tags.indexOf('latest');
                                             if (latest_idx !== -1) {
                                                 _.pullAt(tags_result.tags, [latest_idx]);
                                             }
 
-                                            // sort tags
                                             image_result.tags = tags_result.tags.sort((a, b) => a.localeCompare(b));
 
                                             if (latest_idx !== -1) {
@@ -167,12 +165,8 @@ const internalRepo = {
                                         next(image_result);
                                     });
                             })
-                            .error(err => {
-                                reject(err);
-                            })
-                            .end(results => {
-                                resolve(results);
-                            });
+                            .error(err => { reject(err); })
+                            .end(results => { resolve(results); });
                     });
                 } else {
                     return images;
@@ -180,14 +174,8 @@ const internalRepo = {
             });
     },
 
-    /**
-     * Delete a image/tag
-     *
-     * @param   {String}   name
-     * @param   {String}   digest
-     * @returns {Promise}
-     */
-    delete: (name, digest) => {
+    delete: (name, digest, authHeader) => {
+        const registry = getRegistry(authHeader);
         return registry.deleteImage(name, digest);
     }
 };
