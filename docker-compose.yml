@@ -1,0 +1,54 @@
+version: "3.8"
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "4000:80"
+    environment:
+      - DEBUG=
+      - FORCE_COLOR=1
+      - NODE_ENV=development
+      - REGISTRY_HOST=registry:5000
+      - REGISTRY_DOMAIN=registry:5000
+      - REGISTRY_STORAGE_DELETE_ENABLED=true
+      - REGISTRY_SSL=false
+      - REGISTRY_USER=__token__
+      - REGISTRY_PASS=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI0M2M2YmExZi1hMTdmLTRlYjMtYjRkOC03YTNlNTY1YWJjOGQiLCJleHAiOjE3Nzc3NTA5NTQsImdyb3VwX2lkIjoyLCJzY29wZXMiOlsicmVhZCIsIndyaXRlIl19.EaqRxTVnOXtuuL1r1fOGd-93SuJkYrta9hon8RbE_pg # this should be an ISC auth
+    volumes:
+      - .:/workspace
+    working_dir: /workspace
+    command: /bin/sh -c "while sleep 1000; do :; done"
+    stdin_open: true
+    tty: true
+    depends_on:
+      - registry
+    networks:
+      - registry-network
+
+  registry:
+    image: registry:2
+    ports:
+      - "5050:5000"
+    environment:
+      - REGISTRY_HTTP_SECRET=o43g2kjgn2iuhv2k4jn2f23f290qfghsdg
+      - REGISTRY_STORAGE_DELETE_ENABLED=true
+      - REGISTRY_AUTH=token
+      - REGISTRY_AUTH_TOKEN_REALM=http://169.254.13.101:8000/token
+      - REGISTRY_AUTH_TOKEN_SERVICE=registry:5000
+      - REGISTRY_AUTH_TOKEN_ISSUER=my-auth-server
+      - REGISTRY_AUTH_TOKEN_ROOTCERTBUNDLE=/certs/auth.cert
+      - REGISTRY_LOG_LEVEL=debug
+    volumes:
+      - ./registry-data:/var/lib/registry
+      - ./signing-keys/auth.cert:/certs/auth.cert:ro
+    restart: on-failure
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - registry-network
+
+networks:
+  registry-network:
+    driver: bridge

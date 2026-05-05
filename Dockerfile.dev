@@ -1,0 +1,32 @@
+FROM node:14-bullseye-slim
+
+WORKDIR /workspace
+
+# Install system + build deps (needed for node-sass / node-gyp)
+RUN apt-get update && apt-get install -y \
+    git \
+    zsh \
+    curl \
+    nano \
+    wget \
+    procps \
+    ca-certificates \
+    gnupg \
+    python2 \
+    make \
+    g++ \
+    && ln -sf /usr/bin/python2 /usr/bin/python \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Oh My Zsh
+RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+
+# Set zsh as default shell
+RUN echo "zsh" >> ~/.bashrc
+
+# Verify
+RUN node --version && npm --version && yarn --version
+
+WORKDIR /workspace
+
+CMD ["zsh"]
