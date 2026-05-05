@@ -32,10 +32,10 @@ jobs:
 
 
     - name: Set up Kubeconfig
-        run: |
-          mkdir -p $HOME/.kube
-          echo "${{ secrets.STAGING_K8_CONFIG }}" > $HOME/.kube/config
-        continue-on-error: false
+      run: |
+        mkdir -p $HOME/.kube
+        echo "${{ secrets.STAGING_K8_CONFIG }}" > $HOME/.kube/config
+      continue-on-error: false
 
     - name: Report failure if Kubeconfig setup fails
       if: failure()
