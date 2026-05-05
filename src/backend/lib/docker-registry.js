@@ -23,7 +23,7 @@ module.exports = function (domain, use_ssl, username, password) {
                          '&scope=' + encodeURIComponent(scope || '') +
                          '&account=' + encodeURIComponent(self._username);
 
-            var tokenUrl = self._authServer + '/token?' + params;
+            var tokenUrl = self._authServer + '?' + params;
             var proto    = tokenUrl.startsWith('https') ? https : http;
 
             var headers = { 'User-Agent': 'Docker Registry UI' };
