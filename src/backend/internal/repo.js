@@ -9,23 +9,16 @@ const batchflow = require('batchflow');
 const errors    = require('../lib/error');
 const logger    = require('../logger').registry;
 
-// Extract JWT from Authorization header — supports both Bearer and Basic __token__:<jwt>
-function extractToken(authHeader) {
-    if (!authHeader) return '';
-
-    if (authHeader.startsWith('Bearer ')) {
-        return authHeader.slice(7).trim();
-    }
-
-    if (authHeader.startsWith('Basic ')) {
-        const decoded = Buffer.from(authHeader.slice(6), 'base64').toString('utf8');
-        const colonIdx = decoded.indexOf(':');
-        if (colonIdx !== -1) {
-            return decoded.slice(colonIdx + 1).trim(); // everything after __token__:
-        }
-    }
-
-    return authHeader;
+// Extract the JWT from the access_token cookie.
+function extractToken(cookieHeader) {
+    if (!cookieHeader) return '';
+ 
+    const match = cookieHeader
+        .split(';')
+        .map(s => s.trim())
+        .find(s => s.startsWith('access_token='));
+ 
+    return match ? match.slice('access_token='.length).trim() : '';
 }
 
 // Create a per-request registry client using the caller's token as REGISTRY_PASS
