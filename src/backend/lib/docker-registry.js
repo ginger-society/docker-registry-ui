@@ -5,11 +5,12 @@ const rest = require('restler');
 const http = require('http');
 const https = require('https');
 const url  = require('url');
+const logger = require('../logger').global;
 
 module.exports = function (domain, use_ssl, username, password) {
 
     this._baseurl    = 'http' + (use_ssl ? 's' : '') + '://' + domain + '/v2/';
-    this._username   = username || '';
+    this._username   = username || '__token__';
     this._password   = password || '';
     this._token      = null;
     this._tokenExp   = 0;
@@ -30,11 +31,12 @@ module.exports = function (domain, use_ssl, username, password) {
             if (self._username && self._password) {
                 var b64 = Buffer.from(self._username + ':' + self._password).toString('base64');
                 headers['Authorization'] = 'Basic ' + b64;
+                logger.info(self._password , self._username);
             }
 
             var reqUrl  = url.parse(tokenUrl);
             reqUrl.headers = headers;
-
+            logger.info(b6reqUrl4);
             proto.get(reqUrl, function (res) {
                 var data = '';
                 res.on('data', function (chunk) { data += chunk; });
