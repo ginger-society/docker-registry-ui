@@ -36,7 +36,7 @@ module.exports = function (domain, use_ssl, username, password) {
 
             var reqUrl  = url.parse(tokenUrl);
             reqUrl.headers = headers;
-            logger.info(b6reqUrl4);
+            logger.info(reqUrl);
             proto.get(reqUrl, function (res) {
                 var data = '';
                 res.on('data', function (chunk) { data += chunk; });

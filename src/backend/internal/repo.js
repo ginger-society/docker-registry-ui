@@ -24,6 +24,7 @@ function extractToken(cookieHeader) {
 // Create a per-request registry client using the caller's token as REGISTRY_PASS
 function getRegistry(authHeader) {
     const token = extractToken(authHeader);
+    logger.info('Extracted token: ', token);
     return new Docker(REGISTRY_HOST, REGISTRY_SSL, '__token__', token);
 }
 
