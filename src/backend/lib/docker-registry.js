@@ -42,7 +42,6 @@ module.exports = function (domain, use_ssl, username, password) {
                 res.on('data', function (chunk) { data += chunk; });
                 res.on('end', function () {
                     try {
-                        console.log(data);
                         var parsed = JSON.parse(data);
                         if (!parsed.token) return reject(new Error('No token in response: ' + data));
                         self._token    = parsed.token;

@@ -23,18 +23,38 @@ function createLayerHTML(layers) {
 function createTagCard(tag) {
   const totalSize = tag.layers.reduce((acc, l) => acc + l.size, 0);
 
+  // Pull metadata from annotations (OCI) or fall back to tag.info (Docker v2)
+  const annotations = tag.annotations || {};
+  const info = tag.info || {};
+
+  const created = annotations["org.opencontainers.image.created"]
+    || info.created
+    || null;
+
+  const baseImage = annotations["org.opencontainers.image.base.name"]
+    || info.architecture
+    || "N/A";
+
+  const architecture = info.architecture || "N/A";
+  const os = info.os || "N/A";
+
+  // Detect manifest type
+  const isOCI = tag.mediaType && tag.mediaType.includes("oci");
+
   return `
     <div class="card">
       <div class="tag">
         ${tag.name}
-        <span class="badge">${tag.info.architecture}</span>
+        ${isOCI ? '<span class="badge">OCI</span>' : '<span class="badge">Docker v2</span>'}
+        ${architecture !== "N/A" ? `<span class="badge">${architecture}</span>` : ""}
       </div>
 
       <div class="meta">
-        Created: ${new Date(tag.info.created).toLocaleString()} <br>
-        OS: ${tag.info.os} <br>
+        ${created     ? `Created: ${new Date(created).toLocaleString()} <br>` : ""}
+        ${os !== "N/A"          ? `OS: ${os} <br>` : ""}
+        ${baseImage             ? `Base Image: ${baseImage} <br>` : ""}
         Size: ${formatSize(totalSize)} <br>
-        Digest: ${tag.digest}
+        Digest: ${tag.digest || "N/A"}
       </div>
 
       <h3>Layers</h3>
@@ -59,20 +79,20 @@ async function loadRepo() {
 
   try {
     const token = getCookie("access_token");
-
     const res = await fetch(`/api/repos/${repo}?full=true`, {
       headers: { Authorization: `Bearer ${token}` },
     });
 
-    if (!res.ok) {
-      throw new Error("API error");
-    }
+    if (!res.ok) throw new Error("API error");
 
     const data = await res.json();
 
-    contentEl.innerHTML = data.tags
-      .map(createTagCard)
-      .join("");
+    if (!data.tags || data.tags.length === 0) {
+      contentEl.innerHTML = `<p>No tags found for this repository.</p>`;
+      return;
+    }
+
+    contentEl.innerHTML = data.tags.map(createTagCard).join("");
 
   } catch (err) {
     console.error(err);
