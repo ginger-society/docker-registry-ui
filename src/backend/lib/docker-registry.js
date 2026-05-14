@@ -114,7 +114,6 @@ module.exports = function (domain, use_ssl, username, password) {
                 });
             });
     };
-
     this.getManifest = function (image, reference, version) {
         version = version || 2;
         var scope = 'repository:' + image + ':pull';
@@ -127,7 +126,31 @@ module.exports = function (domain, use_ssl, username, password) {
                             if (result instanceof Error) { reject(result); return; }
                             if (typeof result === 'string') result = JSON.parse(result);
                             result.digest = response.headers['docker-content-digest'] || null;
-                            resolve(result);
+
+                            // If OCI manifest, fetch config blob to get arch/os/variant
+                            var isOCI = result.mediaType && result.mediaType.includes('oci');
+                            if (isOCI && result.config && result.config.digest) {
+                                rest.get(self._baseurl + image + '/blobs/' + result.config.digest, self.getUrlOptions(2, token))
+                                    .on('timeout', function (ms) { reject(new Error('Timeout after ' + ms + 'ms')); })
+                                    .on('complete', function (configResult) {
+                                        if (configResult instanceof Error) {
+                                            // Non-fatal: resolve without info rather than rejecting
+                                            result.info = null;
+                                            resolve(result);
+                                            return;
+                                        }
+                                        if (typeof configResult === 'string') configResult = JSON.parse(configResult);
+                                        result.info = {
+                                            architecture: configResult.architecture || null,
+                                            os:           configResult.os           || null,
+                                            variant:      configResult.variant       || null,
+                                            created:      configResult.created       || null,
+                                        };
+                                        resolve(result);
+                                    });
+                            } else {
+                                resolve(result);
+                            }
                         });
                 });
             });
