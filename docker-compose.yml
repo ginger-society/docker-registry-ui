@@ -15,7 +15,7 @@ services:
       - REGISTRY_STORAGE_DELETE_ENABLED=true
       - REGISTRY_SSL=false
       - REGISTRY_USER=__token__
-      - REGISTRY_PASS=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI0M2M2YmExZi1hMTdmLTRlYjMtYjRkOC03YTNlNTY1YWJjOGQiLCJleHAiOjE3Nzc3NTA5NTQsImdyb3VwX2lkIjoyLCJzY29wZXMiOlsicmVhZCIsIndyaXRlIl19.EaqRxTVnOXtuuL1r1fOGd-93SuJkYrta9hon8RbE_pg # this should be an ISC auth
+      - REGISTRY_PASS=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI0M2M2YmExZi1hMTdmLTRlYjMtYjRkOC03YTNlNTY1YWJjOGQiLCJleHAiOjE3Nzg3Nzc4MzAsImdyb3VwX2lkIjoyLCJzY29wZXMiOlsicmVhZCIsIndyaXRlIl19.yHHMdczyRsHtHjnCqrWMjduYQ-un_DVHMkKOCseRr84 # this should be an ISC auth
     volumes:
       - .:/workspace
     working_dir: /workspace
@@ -35,7 +35,7 @@ services:
       - REGISTRY_HTTP_SECRET=o43g2kjgn2iuhv2k4jn2f23f290qfghsdg
       - REGISTRY_STORAGE_DELETE_ENABLED=true
       - REGISTRY_AUTH=token
-      - REGISTRY_AUTH_TOKEN_REALM=http://169.254.13.101:8000/token
+      - REGISTRY_AUTH_TOKEN_REALM=http://192.168.64.1:8000/token
       - REGISTRY_AUTH_TOKEN_SERVICE=registry:5000
       - REGISTRY_AUTH_TOKEN_ISSUER=my-auth-server
       - REGISTRY_AUTH_TOKEN_ROOTCERTBUNDLE=/certs/auth.cert

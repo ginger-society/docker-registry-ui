@@ -14,7 +14,7 @@ module.exports = function (domain, use_ssl, username, password) {
     this._password   = password || '';
     this._token      = null;
     this._tokenExp   = 0;
-    this._authServer = process.env.AUTH_SERVER || 'http://host.docker.internal:8000';
+    this._authServer = process.env.AUTH_SERVER || 'http://host.docker.internal:8000/token';
 
     var self = this;
 
@@ -42,6 +42,7 @@ module.exports = function (domain, use_ssl, username, password) {
                 res.on('data', function (chunk) { data += chunk; });
                 res.on('end', function () {
                     try {
+                        console.log(data);
                         var parsed = JSON.parse(data);
                         if (!parsed.token) return reject(new Error('No token in response: ' + data));
                         self._token    = parsed.token;
@@ -71,7 +72,14 @@ module.exports = function (domain, use_ssl, username, password) {
         };
 
         if (version === 2) {
-            options.headers.Accept = 'application/vnd.docker.distribution.manifest.v2+json';
+            // Accept both Docker v2 and OCI manifest formats
+            options.headers.Accept = [
+                'application/vnd.docker.distribution.manifest.v2+json',
+                'application/vnd.docker.distribution.manifest.list.v2+json',
+                'application/vnd.oci.image.manifest.v1+json',
+                'application/vnd.oci.image.index.v1+json',
+                '*/*'
+            ].join(', ');
         }
 
         return options;
@@ -109,7 +117,7 @@ module.exports = function (domain, use_ssl, username, password) {
     };
 
     this.getManifest = function (image, reference, version) {
-        version = version || 1;
+        version = version || 2;
         var scope = 'repository:' + image + ':pull';
         return self._getToken(scope)
             .then(function (token) {

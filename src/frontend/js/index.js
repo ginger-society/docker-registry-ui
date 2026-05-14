@@ -1,6 +1,5 @@
 function getRepoName() {
-  const parts = window.location.pathname.split("/").filter(Boolean);
-  return parts[0] || null;
+  return window.location.pathname.split("/").filter(Boolean).join("/") || null;
 }
 
 function formatSize(bytes) {
