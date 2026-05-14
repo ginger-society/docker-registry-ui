@@ -63,6 +63,17 @@ const internalRepo = {
                                         manifest2_result.name       = tag;
                                         manifest2_result.image_name = name;
 
+                                        const isOCI = manifest2_result.mediaType &&
+                                                    manifest2_result.mediaType.includes('oci');
+
+                                        if (isOCI) {
+                                            // For OCI: info is already populated by getManifest via config blob fetch
+                                            // No v1 manifest to fetch — just resolve directly
+                                            next(manifest2_result);
+                                            return;
+                                        }
+
+                                        // Docker v2: fetch v1 manifest for history/info
                                         return registry.getManifest(tags_data.name, tag, 1)
                                             .then(manifest1_result => {
                                                 manifest2_result.info = null;
